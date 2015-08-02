@@ -47,6 +47,6 @@ app.set('views', './views');*/
 
 app.use(errorhandler());
 
-server.listen(3001, function(){
+server.listen(config.app.port, function(){
 	console.log("app started");
 });
