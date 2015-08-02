@@ -19,6 +19,7 @@ config.redis.msgTTL = 14400;
 config.share.historySize = 5;
 
 if (process.env.VCAP_SERVICES){
+    config.app.port = process.env.PORT;
 	var redis_config = JSON.parse(process.env.VCAP_SERVICES)['redis-2.6'][0].credentials;
 	config.redis.host = redis_config.hostname;
 	config.redis.port = redis_config.port;
@@ -29,6 +30,7 @@ if (process.env.VCAP_SERVICES){
 }
 
 else {
+    config.app.port = 'xxxxx';
 	config.redis.host = 'xxxxx';
 	config.redis.port = 'xxxxx';
 	config.redis.pass = 'xxxxx';
