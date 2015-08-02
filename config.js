@@ -23,9 +23,9 @@ if (process.env.VCAP_SERVICES){
 	config.redis.host = redis_config.hostname;
 	config.redis.port = redis_config.port;
 	config.redis.pass = redis_config.password;
-	config.app.sessionSecret = process.env.VCAP_SERVICES.'EXPRESS_SESSION_SECRET';
-	config.share.hashsalt = process.env.VCAP_SERVICES.'HASHIDS_SALT';
-	config.app.peerjsApiKey = process.env.VCAP_SERVICES.'PEERJS_API_KEY';
+	config.app.sessionSecret = process.env.VCAP_SERVICES.EXPRESS_SESSION_SECRET;
+	config.share.hashsalt = process.env.VCAP_SERVICES.HASHIDS_SALT;
+	config.app.peerjsApiKey = process.env.VCAP_SERVICES.PEERJS_API_KEY;
 }
 
 else {
