@@ -1,0 +1,1 @@
+function message(type, content)
