@@ -32,7 +32,7 @@ module.exports = function(io, redisClient){
 
 	shareContainer.getShares(function(err, val){
 		val.forEach(function(shareid){
-			console.log(shareid);
+			// console.log(shareid);
 			cleanupJobs.cleanUpShare(shareid, disconnectShare);
 		});
 
@@ -171,7 +171,7 @@ module.exports = function(io, redisClient){
 							sortedList['viewers'].push({name: i, state: userState});
 						}
 					}
-					console.log(sortedList);
+					// console.log(sortedList);
 					console.log('sentlist');
 					io.sockets.in(socket.room).emit('update-userlist', sortedList);
 
@@ -283,8 +283,6 @@ module.exports = function(io, redisClient){
 	  			fn({'exists': true});
 	  		}
 	  		else {
-	  			console.log('---SESSIONID---');
-	  			console.log(socket.request.sessionID);
 	  			shareContainer.setNickname(value, socket.request.session.shares[socket.room].nick, socket.request.sessionID, socket.room, function(err, val){
 	  				socket.request.session.shares[socket.room].nick = value;
 	  				socket.request.session.save();
@@ -298,7 +296,7 @@ module.exports = function(io, redisClient){
 
 	  socket.on('changepass', function(role, value, fn){
 	  	shareContainer.getClientDetails(socket.request.session.shares[socket.room].nick, socket.room, function(val){
-	  		console.log(val);
+	  		// console.log(val);
 	  		if(val.role == 'owner'){
 	  			shareContainer.setSharePassword(socket.room, role, value, function(err, val){
 	  				fn({success: "Success: "+role+" password changed"});
@@ -319,7 +317,6 @@ module.exports = function(io, redisClient){
 	  			});*/
 	  			// socket.disconnectRoom(socket.room);
 
-	  			console.log('---SOCKETS TO BE DESTROYED---');
 	  			// io.sockets.in(socket.room).sockets.forEach(function(s){
 	  			// 	delete s.request.session.shares[socket.room];
 	  			// 	s.emit('message', {type: 'notice', ts: Date.now(), content: "This room is going to be closed in 5 seconds."});
@@ -391,7 +388,7 @@ module.exports = function(io, redisClient){
 	  });
 
 	  socket.on('textMessage', function(msg){
-	    console.log('message: ' + msg);
+	    // console.log('message: ' + msg);
 	    // var name = shares.getshare(socket.room).getClientById(socket.id).name;
 	    var nick = socket.request.session.shares[socket.room].nick;
 	    var message = {sender: nick, type: 'text', content: msg};
@@ -425,15 +422,13 @@ module.exports = function(io, redisClient){
 	  					arr[index]['fromMe'] = true;
 	  				}
 	  			});
-	  			console.log('HISOTAYSRFCHUN');
-	  			console.log(msgArray);
 					if (!msgArray.length || msgArray[0].id == 1){
 						var moreHistory = false;
 					}
 					else {
 						var moreHistory = true;
 					}
-					console.log(msgArray);
+					// console.log(msgArray);
 					socket.emit('chatHistoryChunk', msgArray, moreHistory);
 					console.log('history sent');
 	  		});
