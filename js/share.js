@@ -1,21 +1,5 @@
- // var validate;
-// below function adapted from http://stackoverflow.com/questions/15887900/group-objects-by-property-in-javascript
-
 var socket;
 var oldestHistoryIndex = -1;
-
-var transformArr = function(orig) {
-    var roles = {},
-        i, j, cur;
-    for (i = 0, j = orig.length; i < j; i++) {
-        cur = orig[i];
-        if (!(cur.role in roles)) {
-            roles[cur.role] = [];
-        }
-        roles[cur.role].push(cur.name);
-    }
-    return roles;
-}
 
 function showErrorModal(msg){
   $('.modal').modal('hide');

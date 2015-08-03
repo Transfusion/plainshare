@@ -245,7 +245,7 @@ function setSharePassword(share, role, pass, fn){
 // (-1 represents they don't have any history at all since they newly joined)---
 // config.share.historySize-1 because redis's zrange is inclusive.
 function getHistoryChunk(index, share, fn){
-	this.redisClient.zrange(config.redis.prefix+'shares:'+share+':msgTimestamp', index-config.share.historySize+1, index, function(err, val){
+	this.redisClient.zrange(config.redis.prefix+'shares:'+share+':msgTimestamp', index-config.share.historySize+1 < 0 ? 0 : index-config.share.historySize+1, index, function(err, val){
 		// at this point val is an array of the msgIDs; we are going to pass them to hmget with a callback
 		if (val.length > 0){
 			this.redisClient.hmget(config.redis.prefix+'shares:'+share+':messages', val, function(err, val){
