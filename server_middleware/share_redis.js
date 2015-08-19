@@ -66,12 +66,14 @@ function purgeShare(share){
 // cable:shares:sharename:message:msgID is a hash of metadata (type, content); msgID is sequential; the only sane way to do expiry
 // possibly include timestamp later?
 // note: since we have to fetch ALL the fields of a message at once, best to simply store the entire serialized json at once
-function addMessage(msg, nickname, share, fn){
+function addMessage(msg, share, fn){
 	this.redisClient.incr(config.redis.prefix+'shares:'+share+':msgID');
 	this.redisClient.get(config.redis.prefix+'shares:'+share+':msgID', function(err, val){
 		var msgID = parseInt(val);
 		msg['id'] = msgID;
-		msg['ts'] = Date.now();
+		// if (msg.ts == undefined){
+			msg['ts'] = Date.now();
+		// }
 		var currentTime = new Date();
 		this.redisClient.hset(config.redis.prefix+'shares:'+share+':messages', msgID, JSON.stringify(msg));
 

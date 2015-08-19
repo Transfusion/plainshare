@@ -19,18 +19,19 @@ config.redis.msgTTL = 14400;
 config.share.historySize = 5;
 
 if (process.env.VCAP_SERVICES){
-    config.app.port = process.env.PORT;
+  config.app.port = process.env.PORT;
 	var redis_config = JSON.parse(process.env.VCAP_SERVICES)['redis-2.6'][0].credentials;
 	config.redis.host = redis_config.hostname;
 	config.redis.port = redis_config.port;
 	config.redis.pass = redis_config.password;
 	config.app.sessionSecret = process.env.EXPRESS_SESSION_SECRET;
 	config.share.hashsalt = process.env.HASHIDS_SALT;
-	config.app.peerjsApiKey = process.env.PEERJS_API_KEY;
+	config.app.storageDir = JSON.parse(process.env.VCAP_SERVICES)['filesystem-1.0'][0].credentials.host_path;
+	// config.app.peerjsApiKey = process.env.PEERJS_API_KEY;
 }
 
 else {
-    config.app.port = 'xxxxx';
+  config.app.port = 'xxxxx';
 	config.redis.host = 'xxxxx';
 	config.redis.port = 'xxxxx';
 	config.redis.pass = 'xxxxx';

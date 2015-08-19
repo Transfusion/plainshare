@@ -1,4 +1,6 @@
 var socket;
+var resumable;
+var roomid;
 var oldestHistoryIndex = -1;
 
 function showErrorModal(msg){
@@ -45,7 +47,22 @@ function renderMessage(msg, fn){
   else if (msg.type == 'notice'){
     var time = new Date(msg.ts);
     var msgTimestamp = '<span class="text-muted msgTimestamp">'+time.getFullYear().toString().slice(2,4)+'-'+(time.getMonth()+1)+'-'+time.getDate()+" "+pad(time.getHours())+':'+pad(time.getMinutes())+':'+pad(time.getSeconds())+'</span>';
-    fn('<li id='+msg.id+'>'+msgTimestamp+'<span class="text-muted">'+msg.content+'</span></li>');  
+    fn('<li id='+msg.id+'>'+msgTimestamp+'<span class="text-muted">'+msg.content+'</span></li>');
+  }
+
+  else if (msg.type == 'upload'){
+    var text = $('<span/>').addClass('text-success').text("Uploading file");
+    var fileicon = $('<span/>', {class: "glyphicon glyphicon-open-file", style:"font-size: 3em;"}).val(msg.id);
+    var medialeft = $('<div/>').addClass("media-left").append(fileicon);
+    var mediaheading = $('<h4/>').addClass('media-heading').text(msg.fileName).css('display', 'inline-block');
+
+    var mediabody = $('<div/>').addClass("media-body").append(mediaheading, $('<p/>').text(msg.size+" bytes"));
+    var bar = $('<div/>').addClass('progress').css({'width': '40%', 'display': 'block'});
+    bar = bar.append( $('<div/>').addClass("progress-bar progress-bar-striped active").attr('role', 'progressbar').attr('aria-valuemax', "100").attr('aria-valuemin', '0').attr('aria-valuenow', "0").text('0%') );
+    bar.hide();
+    mediabody.append(bar);
+    var message = $('<li id='+msg.id+'>').addClass('upload').append($('<strong/>').append(text), $('<div/>').addClass("media").append(medialeft, mediabody) );
+    fn(message);
   }
 
   else if (msg.type == 'file'){
@@ -53,48 +70,17 @@ function renderMessage(msg, fn){
     var text = $('<span/>').addClass('text-success').text(msg.sender + " offered a file");
     var msgTimestamp = '<span class="text-muted msgTimestamp">'+time.getFullYear().toString().slice(2,4)+'-'+(time.getMonth()+1)+'-'+time.getDate()+" "+pad(time.getHours())+':'+pad(time.getMinutes())+':'+pad(time.getSeconds())+'</span>';
 
-    var fileicon = $('<span/>', {class: "glyphicon glyphicon-open-file dl-button", style:"font-size: 3em;"}).val(msg.id);
+    var fileicon = $('<a/>', {href: '/download?roomid='+roomid+'&file='+msg.fileID+'-'+msg.fileName, style: 'text-decoration: none; color: #000000;', download: msg.fileName}).append($('<span/>', {class: "glyphicon glyphicon-open-file dl-button", style:"font-size: 3em;"}).val(msg.id) );
     var medialeft = $('<div/>').addClass("media-left").append(fileicon);
+    var mediaheading = $('<h4/>').addClass('media-heading').text(msg.fileName).css('display', 'inline-block');
+    var mediabody = $('<div/>').addClass("media-body").append(mediaheading, $('<p/>').text(msg.size+" bytes"));
 
-    var mediaheading = $('<h4/>').addClass('media-heading').text(msg.name).css('display', 'inline-block');
-    if(msg.fromMe){
-      // var mediaheading = $('<h4/>').addClass('media-heading').text(msg.name).css('display', 'inline-block');
-      var changeFileSelect = $('<input/>', {type: 'file'});
+    var message = $('<li/>', {id: msg.id}).append(msgTimestamp).append($('<strong/>').append(text), $('<div/>').addClass("media").append(medialeft, mediabody) );
 
-      changeFileSelect.bind('change', function(){
-        // console.log(this.files);
-        console.log('file altered');
-        var file = this.files[0];
-        socket.emit('changeFile', msg.id, {name: this.files[0].name, size: this.files[0].size});
-        uploads[msg.id] = {};
-        uploads[msg.id]['file'] = file;
-        uploads[msg.id].connections = {};
-      });
-
-      var changeFileBtn = $('<span/>').addClass('btn btn-default btn-file btn-sm').css('float', 'right').text('Change File').append(changeFileSelect);
-      // mediaheading = mediaheading.append(changeFileBtn).append($('<p/>').text('Change File'));
-    }
-    // else {
-    //   var mediaheading = $('<h4/>').addClass('media-heading').text(msg.name).css('display', 'inline-block');
-    // }
-    
-    var mediabody = $('<div/>').addClass("media-body").append(mediaheading, changeFileBtn, $('<p/>').text(msg.size+" bytes"));
-
-    var bar = $('<div/>').addClass('progress').css({'width': '40%', 'display': 'block'});
-    bar = bar.append( $('<div/>').addClass("progress-bar progress-bar-striped active").attr('role', 'progressbar').attr('aria-valuemax', "100").attr('aria-valuemin', '0').attr('aria-valuenow', "0").text('0%') );
-    bar.hide();
-    mediabody.append(bar);
-    var message = jQuery('<li/>', {id: msg.id}).append(msgTimestamp).append($('<strong/>').append(text), $('<div/>').addClass("media").append(medialeft, mediabody) );
-    // var media = 
-    // $('#msgs').append(message);
+    // fileicon.append(  );
     fn(message);
-
-    fileicon.click(function(){
-      requestFile(this.value);
-      // console.log(this.value);
-    });
-    // start downloading on icon click
   }
+
 }
 
 function renderErrorAlert(errorMsg){
@@ -117,6 +103,35 @@ function toggleProgress(msgID){
 function updateProgress(msgID, progress){
   var bar = $('li[id='+msgID+'] .progress-bar');
   bar.css('width', Math.floor(progress)+'%').attr('aria-valuenow', progress).text(Math.floor(progress)+'%');
+}
+
+function createUploadProgress(msg){
+  console.log("CREATING UPLOAD PROGRESS");
+  console.log(msg);
+  renderMessage({type: 'upload', id: msg.id, fileName: msg.name, size: msg.size}, function(html){
+    $('#msgs').append(html);
+  });
+  $('#upload').parent().hide();
+  $('#cancelUpload').show();
+  toggleProgress(msg.id);
+}
+
+function fileSuccess(msgID){
+  $('#upload').parent().show();
+  $('#cancelUpload').hide();
+  $("#"+msgID+' .media-body .btn').remove();
+  $('#'+msgID+' .media-body').append(renderSuccessAlert("Upload completed"));
+  setTimeout(function(){
+    $('#'+msgID).remove();
+  }, 4000);
+}
+
+function fileError(msgID, errorMsg){
+  $('#'+msgID+' .media-body').append(renderErrorAlert(errorMsg));
+}
+
+function cancelFile(msgID){
+  $('#'+msgID+' .media-body').append(renderInfoAlert("Upload canceled"));
 }
 
 $( document ).ready(function() {
@@ -142,6 +157,7 @@ $( document ).ready(function() {
           d.reject('Error: nickname has been taken');
         }
         else {
+          // nickname = value.value;
           d.resolve();
         }
       })
@@ -153,17 +169,15 @@ $( document ).ready(function() {
     }
   });
 
-  // $('#joinModal').modal('show');
-  // $('#nickname').editable('show');
-
   socket = io();
 
-  if (window.location.pathname.split('/').length > 1 && window.location.pathname.split('/')[1].length > 0){
-    var roomid = window.location.pathname.split('/')[1];
+  if (window.location.pathname.split('/').length > 2 && window.location.pathname.split('/')[2].length > 0){
+    roomid = window.location.pathname.split('/')[2];
 
     socket.on('connect', function(){
       // hideNoticeModal();
       $('.modal').modal('hide');
+      // resumable.upload();
       socket.emit('checkRoom', roomid, checkRoomExists);
     });
 
@@ -277,10 +291,11 @@ $( document ).ready(function() {
   });
 
   socket.on('joinsuccess', function(msg) {
-    apiKey = msg.apiKey;
-    initPeer();
+    // apiKey = msg.apiKey;
+    // initPeer();
     $('#joinModal').modal('hide');
     $('#nickname').editable('setValue', $('#join-nickname').val());
+    // nickname = $('#join-nickname').val();
     if (msg.role == 'owner'){
       $('#owner_settings').show();
     }
@@ -289,11 +304,12 @@ $( document ).ready(function() {
 
   socket.on('resumesuccess', function(msg){
     // hideNoticeModal();
-    apiKey = msg.apiKey;
-    initPeer();
+    // apiKey = msg.apiKey;
+    // initPeer();
     $('.modal').modal('hide');
     // $('#msgs').append('<li><span class="text-success">'+msg.msg+'</span></li>');
     $('#nickname').editable('setValue', msg.nickname);
+    // nickname = $('#join-nickname').val();
     if (msg.role == 'owner'){
       $('#owner_settings').show();
     }
@@ -304,7 +320,7 @@ $( document ).ready(function() {
     // $('#createModal').modal('hide');
     // $('#nickname').editable('setValue', $('#create-nickname').val());
     console.log(msg);
-    window.location.href = '/'+msg;
+    window.location.href = '/share/'+msg;
   });
 
   // socket.on('notice', function(msg) {
@@ -387,49 +403,13 @@ $( document ).ready(function() {
       // $('#'+msg.id).replaceWith(renderMessage(msg));
       renderMessage(msg, function(html){
         $('#'+msg.id).replaceWith(html);
-      })
+      });
     }
   });
 
-  // todo: put all client-side p2p transfer requests into another file
-  socket.on('incomingFileRequest', function(msg, fn){
-    console.log(msg);
-    if (msg.recipientPeerID == peer.id){
-      console.log('Sending to yourself!');
-      $('#'+msg.msgID + " input[value='Cancel']").remove();
-      $('#'+msg.msgID+' .glyphicon').addClass('not-active');
-      $('#'+msg.msgID+' .media-body').append(renderErrorAlert('You are the sender of this file.'));
-    }
-    else {
-      if (msg.msgID in uploads){
-        fn({accepted: true});
-        transferFile(msg.msgID, msg.recipientPeerID);
-      }
-      else {
-        fn({accepted: false, msg: "Sender no longer has file"});
-      }
-    }
-  })
-
-  // disconnect the dataconnection which is not open yet
-  socket.on('cancelFileTransfer', function(msg){
-    uploads[msg.msgID].connections[msg.recipientPeerID].close();
-    uploads[msg.msgID].connections[msg.recipientPeerID].on('open', function(){
-      this.close();
-    })
-    console.log('canceled '+msg.msgID);
-  })
-
-  socket.on('fileRequestError', function(msg){
-    console.log(msg);
-    $('#'+msg.msgID + " input[value='Cancel']").remove();
-    $('#'+msg.msgID+' .alert').remove();
-    // $('#'+msg.msgID+' .glyphicon').addClass('not-active');
-    $('#'+msg.msgID+' .media-body').append(renderErrorAlert(msg.errorMsg));
-  })
-
   socket.on('disconnect', function(){
     console.log('lost connection to server');
+    resumable.cancel();
     showNoticeModal('Lost connection to server', true);
   });
 
@@ -438,14 +418,15 @@ $( document ).ready(function() {
     showNoticeModal('Reconnecting to server...', false);
   });
 
-  $('#upload').bind('change', function(){
-    var file = this.files[0];
-    socket.emit('fileTransfer', {name: this.value, size: file.size}, function(msgID){
-      // console.log(msgID);
-      uploads[msgID] = {file: file, connections: {} };
-      // store it in the uploads{} in filehandler.js for future retrieval
-      // connections is an object of peerids to connections in progress
-    });
-  });
 
+  // var initResumableUpload = function(shareName, initCallback, successCallback, errorCallback, progressCallback, completeCallback){
+  resumable = initResumableUpload(roomid, createUploadProgress, fileSuccess, fileError, updateProgress, cancelFile);
+  resumable.assignBrowse($('#upload'));
+
+  $('#cancelUpload').click(function(){
+    resumable.cancel();
+    $(this).hide();
+    $('.upload').remove();
+    $('#upload').parent().show();
+  })
 });

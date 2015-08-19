@@ -1,4 +1,7 @@
 var config = require('../config.js');
+var fs = require('fs');
+var path = require('path');
+var rmdir = require('rimraf');
 var schedule = require('node-schedule');
 // This module is responsible for clearing client data 
 
@@ -8,9 +11,16 @@ var timers = {};
 
 // fn is a callback when the share expiry time has been reached and before actually deleting 
 function expireShare(shareid, fn){
-	fn(shareid);
+	
 	this.shareContainer.purgeShare(shareid);
-	delete timers[shareid];
+
+	rmdir(path.join(config.app.storageDir, 'uploads', shareid), function(err){
+		console.log(err);
+	});
+	if (timers[shareid]){
+		delete timers[shareid];
+	}
+	fn(shareid);
 }
 
 function cleanUpShare(shareid, fn){
@@ -35,5 +45,6 @@ module.exports = function(shareContainer){
 	this.shareContainer = shareContainer;
 	this.cleanUpShare = cleanUpShare;
 	this.stopCleanUp = stopCleanUp;
+	this.expireShare = expireShare;
 	return this;
 }
